@@ -82,8 +82,23 @@
             <div class="form-card">
               <h3>在线留言</h3>
               <p class="form-desc">填写以下表单，我们将尽快与您联系</p>
-              
-              <el-form 
+
+              <el-alert
+                v-if="handoff"
+                type="success"
+                :closable="false"
+                show-icon
+                class="handoff-alert"
+              >
+                <template #title>
+                  已带入 {{ handoff.names.length }} 个对照方案：{{ handoff.names.join('、') }}
+                </template>
+                <div class="handoff-alert__detail">
+                  能力核对进度 {{ handoff.checkedCount }} 项，咨询内容已预填，您可以补充后提交。
+                </div>
+              </el-alert>
+
+              <el-form
                 ref="formRef"
                 :model="form" 
                 :rules="rules" 
@@ -179,13 +194,15 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import SectionTitle from '@/components/SectionTitle.vue'
+import { consumeHandoff } from '@/composables/useProductCompare'
 
 const formRef = ref(null)
 const submitting = ref(false)
 const activeFaq = ref([])
+const handoff = ref(null)
 
 const form = reactive({
   name: '',
@@ -193,6 +210,15 @@ const form = reactive({
   email: '',
   company: '',
   message: ''
+})
+
+onMounted(() => {
+  // 读取产品对照页交接的整组方案，预填咨询内容
+  const data = consumeHandoff()
+  if (data && Array.isArray(data.ids) && data.ids.length > 0) {
+    handoff.value = data
+    form.message = data.summary || ''
+  }
 })
 
 const rules = {
@@ -385,6 +411,16 @@ const faqs = [
     font-size: $font-size-sm;
     color: $text-secondary;
     margin-bottom: $spacing-lg;
+  }
+
+  .handoff-alert {
+    margin-bottom: $spacing-md;
+
+    &__detail {
+      font-size: $font-size-xs;
+      opacity: 0.8;
+      margin-top: 2px;
+    }
   }
 }
 
