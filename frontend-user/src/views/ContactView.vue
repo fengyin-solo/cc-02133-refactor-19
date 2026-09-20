@@ -179,9 +179,13 @@
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
+import { ref, reactive, onMounted } from 'vue'
+import { useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import SectionTitle from '@/components/SectionTitle.vue'
+import { getProductById } from '@/data/products'
+
+const route = useRoute()
 
 const formRef = ref(null)
 const submitting = ref(false)
@@ -211,6 +215,23 @@ const rules = {
     { required: true, message: '请输入咨询内容', trigger: 'blur' }
   ]
 }
+
+// 来自产品方案批量对照的咨询交接：预填咨询内容，便于顾问衔接
+onMounted(() => {
+  if (route.query.source !== 'product-compare') return
+
+  const planIds = String(route.query.plans || '')
+    .split(',')
+    .map((id) => id.trim())
+    .filter(Boolean)
+  const planNames = planIds
+    .map((id) => getProductById(id)?.shortTitle)
+    .filter(Boolean)
+
+  if (planNames.length === 0) return
+
+  form.message = `您好，我在产品方案对照后希望进一步咨询：${planNames.join('、')}。请安排顾问与我联系，谢谢。`
+})
 
 const handleSubmit = async () => {
   if (!formRef.value) return
